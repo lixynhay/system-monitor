@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ROOT ADMIN PANEL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
+        body { background: #050505; color: #00ff41; font-family: 'Fira Code', monospace; font-size: 14px; }
+        .panel { border: 1px solid #004411; background: #0a0a0a; border-radius: 4px; }
+        .bar-bg { height: 4px; background: #111; width: 100%; }
+        .bar-fill { height: 100%; background: #00ff41; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .log-line { border-left: 2px solid #004411; padding-left: 8px; margin-bottom: 4px; font-size: 11px; }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-10">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-green-900 mb-6 pb-4 gap-4">
+            <div>
+                <h1 class="text-lg font-bold tracking-tighter">VDS_DASHBOARD</h1>
+                <p id="sys-info" class="text-[10px] opacity-50"></p>
+            </div>
+            <div id="root-tag" class="text-[10px] px-2 py-1 font-bold uppercase">CHECKING...</div>
+        </header>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="panel p-4">
+                <p class="text-[10px] opacity-60 uppercase font-bold">CPU Load</p>
+                <p id="cpu-val" class="text-2xl my-1">0%</p>
+                <div class="bar-bg"><div id="cpu-bar" class="bar-fill"></div></div>
+            </div>
+            <div class="panel p-4">
+                <p class="text-[10px] opacity-60 uppercase font-bold">Memory</p>
+                <p id="ram-val" class="text-2xl my-1">0%</p>
+                <div class="bar-bg"><div id="ram-bar" class="bar-fill"></div></div>
+            </div>
+            <div class="panel p-4">
+                <p class="text-[10px] opacity-60 uppercase font-bold">Net Down</p>
+                <p class="text-2xl my-1 text-blue-400"><span id="net-down">0.00</span><span class="text-xs ml-1">MB/s</span></p>
+            </div>
+            <div class="panel p-4">
+                <p class="text-[10px] opacity-60 uppercase font-bold">Core Temp</p>
+                <p id="temp-val" class="text-2xl my-1 text-orange-500">--</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 panel p-4 overflow-x-auto">
+                <h2 class="text-[10px] font-bold mb-4 opacity-60">TOP PROCESSES</h2>
+                <div id="proc-list" class="min-w-[300px]"></div>
+            </div>
+            
+            <div class="panel p-4">
+                <h2 class="text-[10px] font-bold mb-4 opacity-60">SYSTEM EVENTS</h2>
+                <div id="log-list" class="opacity-70 italic"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data acquisition and UI updates
+        async function update() {
+            try {
+                const res = await fetch('/api/data');
+                const d = await res.json();
+                if(d.error) throw new Error(d.error);
+
+                document.getElementById('sys-info').innerText = `${d.sys.os} | UP: ${d.sys.uptime}`;
+                const rt = document.getElementById('root-tag');
+                rt.innerText = d.sys.is_root ? 'ROOT ACCESS' : 'USER ACCESS';
+                rt.className = `text-[10px] px-2 py-1 font-bold ${d.sys.is_root ? 'bg-green-600' : 'bg-yellow-600'} text-black`;
+
+                document.getElementById('cpu-val').innerText = d.stats.cpu + '%';
+                document.getElementById('cpu-bar').style.width = d.stats.cpu + '%';
+                document.getElementById('ram-val').innerText = d.stats.ram + '%';
+                document.getElementById('ram-bar').style.width = d.stats.ram + '%';
+                document.getElementById('net-down').innerText = d.stats.net_down;
+                document.getElementById('temp-val').innerText = d.sys.cpu_temp;
+
+                document.getElementById('proc-list').innerHTML = d.procs.map(p => `
+                    <div class="flex justify-between items-center py-2 border-b border-green-900/30 last:border-0 hover:bg-green-500/5 px-1">
+                        <span class="w-16 opacity-50">${p.pid}</span>
+                        <span class="flex-1 font-bold text-white">${p.name}</span>
+                        <span class="w-16 text-right text-green-400">${p.cpu}%</span>
+                        <button onclick="killProc(${p.pid})" class="ml-4 text-[9px] border border-red-900 px-2 py-1 text-red-500 hover:bg-red-900 hover:text-white transition">KILL</button>
+                    </div>
+                `).join('');
+
+                document.getElementById('log-list').innerHTML = d.logs.map(l => `<div class="log-line">${l}</div>`).join('');
+            } catch(e) {
+                document.getElementById('sys-info').innerText = "OFFLINE / ERROR";
+            }
+        }
+
+        async function killProc(pid) {
+            if(confirm(`Kill PID ${pid}?`)) {
+                try {
+                    const res = await fetch(`/api/kill/${pid}`, {method: 'POST'});
+                    if(res.ok) update();
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        setInterval(update, 2000);
+        update();
+    </script>
+</body>
+</html>
