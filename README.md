@@ -24,11 +24,12 @@ A lightweight, real-time web dashboard for Linux VPS/VDS monitoring. Built with 
 ```bash
 git clone [https://github.com/lixynhay/system-monitor.git](https://github.com/lixynhay/system-monitor.git)
 cd system-monitor
-
+```
 ### 2. Install dependencies
 ```bash
 pip install -r requirements.txt
-
+```
 ### 3. Run the server
 ```bash
 sudo python3 main.py
+```
