@@ -22,7 +22,7 @@ A lightweight, real-time web dashboard for Linux VPS/VDS monitoring. Built with 
 
 ### 1. Clone the repository
 ```bash
-git clone [https://github.com/lixynhay/system-monitor.git](https://github.com/lixynhay/system-monitor.git)
+git clone https://github.com/lixynhay/system-monitor.git
 cd system-monitor
 ```
 ### 2. Install dependencies
